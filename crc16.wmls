@@ -1,0 +1,67 @@
+function dato(s, bytes, i):integer
+{
+    var s1;
+    s1 = String.subString(s,2*bytes*i,2*bytes);
+    return ISO.hexToInt(s1,true);
+}
+
+function arma_tabla_crc():string
+{
+  var i, j : integer;
+  var  P_CCITT_polinomial, reg : integer;
+  var  topbit : integer;
+  var ret:string;
+  
+  ret = "";
+  P_CCITT_polinomial = 4129 /* 0x1021 */;
+  
+  for(i= 0; i<=255; ++i)
+  {
+    reg = i << 8;
+    for ( j=0 ; j<=7 ; ++j)
+    {
+        topbit = (reg >> 15);
+        reg    = (reg % 32768) <<1;
+        if (1==topbit)
+        {
+            reg = reg ^ P_CCITT_polinomial;
+        }
+    }
+    ret += String.subString(ISO.intToHex(reg,true),8 - 2*2/*NUMBYTES*/,8);
+  }
+
+  return ret;
+}
+
+extern function calcula_crc(s: string, from:integer, to: integer):string
+{
+    var i,w_sup:integer;
+    var result_crc: integer;
+    var ret: string;
+    var tabla_crc,s1,s2,s3,s4,s5:string;
+  
+    tabla_crc = arma_tabla_crc();
+
+    result_crc = 0;
+    for (i = from ; i<=to ;++i)
+    {   
+      w_sup = (result_crc div 256) ^ dato(s,1,i);
+      result_crc = ((result_crc % 256) << 8) ^ dato(tabla_crc,2,w_sup);
+    }
+    
+    ret = ISO.intToHex(result_crc,false /* little endian */ );
+    ret =  String.subString(ret, 0, 2*2/* NUMBYTES*/) ;
+
+    return ret;
+}
+
+/* Just for tests */
+extern function crc()
+{
+   var c:string;
+   
+   c=calcula_crc("41424344" /* "ABCD" */  , 0, 3);
+   
+   Dialogs.alert(c);
+}
+
